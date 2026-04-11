@@ -45,8 +45,14 @@ export async function startSubmission(req: Request, res: Response) {
 // Submit answers for a submission and update status.
 export async function submitSubmission(req: Request, res: Response) {
   const payload = submitSubmissionSchema.parse(req.body);
+
+  if (!req.auth?.userId) {
+    throw new ApiError(401, "Authentication required");
+  }
+
   const submission = await submitExamSubmission(
     String(req.params.submissionId),
+    req.auth.userId,
     payload.answers,
     payload.violations,
   );
