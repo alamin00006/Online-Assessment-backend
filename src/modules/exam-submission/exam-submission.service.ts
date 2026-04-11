@@ -1,4 +1,5 @@
 import { ApiError } from "../../utils/api-error";
+import { Types } from "mongoose";
 import { UserModel } from "../auth/auth.model";
 import { ExamModel } from "../exam/exam.model";
 import { ExamSubmissionModel } from "./exam-submission.model";
@@ -45,8 +46,6 @@ export async function startExamSubmission(examId: string, candidateId: string) {
       $setOnInsert: {
         answers: {},
         violations: 0,
-        candidateName: candidate.name,
-        candidateEmail: candidate.email,
       },
     },
     {
@@ -59,13 +58,22 @@ export async function startExamSubmission(examId: string, candidateId: string) {
 // Submit a submission, calculate result status, and save answer data.
 export async function submitExamSubmission(
   submissionId: string,
+  candidateId: string,
   answers: Record<string, string | string[]>,
   violations: number,
 ) {
+  if (!Types.ObjectId.isValid(submissionId)) {
+    throw new ApiError(400, "Invalid submission id");
+  }
+
   const submission = await ExamSubmissionModel.findById(submissionId);
 
   if (!submission) {
     throw new ApiError(404, "Submission not found");
+  }
+
+  if (submission.candidateId.toString() !== candidateId) {
+    throw new ApiError(403, "You cannot submit this exam attempt");
   }
 
   submission.answers = answers;
